@@ -134,6 +134,14 @@
     box-shadow: 0 0 14px var(--pink);
   }
 
+  .logo-img { display: block; width: min(88vw, 520px); height: auto; filter: drop-shadow(0 0 30px rgba(255,46,136,.45)); }
+  .logo-tools { display: inline-flex; gap: 14px; margin-top: 8px; }
+  .logo-tools button {
+    background: none; border: 0; padding: 8px 4px; cursor: pointer;
+    font: 600 12px "Inter", sans-serif; color: rgba(255,247,251,.7); text-decoration: underline;
+  }
+  .logo-tools button:hover { color: #fff; }
+
   .place {
     font-weight: 800; letter-spacing: .5em; text-transform: uppercase;
     font-size: clamp(11px, 1.6vw, 14px);
@@ -291,7 +299,14 @@
   </span></div>
 </main>
 
-<footer>Página feita por fã, sem vínculo com a Rockstar Games ou a Take-Two. Data de lançamento anunciada: 19/11/2026.</footer>
+<footer>
+  <div class="logo-tools">
+    <button type="button" id="pickLogo">Usar minha imagem de logo</button>
+    <button type="button" id="resetLogo" hidden>Voltar à logo padrão</button>
+  </div>
+  <input type="file" id="logoFile" accept="image/*" hidden>
+  <p>Página feita por fã, sem vínculo com a Rockstar Games ou a Take-Two. Data de lançamento anunciada: 19/11/2026.</p>
+</footer>
 
 <script>
   // Lançamento: 19/11/2026, meia-noite no horário local de quem estiver vendo
@@ -344,6 +359,48 @@
   }
   update();
   setInterval(update, 1000);
+
+  // Logo personalizada: a imagem escolhida fica salva só neste navegador
+  const KEY = 'gta6-countdown-logo';
+  const logo = document.querySelector('.logo');
+  const defaultLogo = logo.innerHTML;
+  const fileInput = document.getElementById('logoFile');
+  const resetBtn = document.getElementById('resetLogo');
+
+  function showLogo(src) {
+    if (src) {
+      logo.innerHTML = '';
+      const img = new Image();
+      img.className = 'logo-img'; img.alt = 'GTA VI'; img.src = src;
+      logo.appendChild(img);
+    } else {
+      logo.innerHTML = defaultLogo;
+    }
+    resetBtn.hidden = !src;
+  }
+  try { showLogo(localStorage.getItem(KEY)); } catch (e) {}
+
+  document.getElementById('pickLogo').onclick = () => fileInput.click();
+  resetBtn.onclick = () => { try { localStorage.removeItem(KEY); } catch (e) {} showLogo(null); };
+
+  fileInput.onchange = () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      // reduz para caber no armazenamento do navegador
+      const scale = Math.min(1, 1000 / img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const data = c.toDataURL('image/png');
+      URL.revokeObjectURL(img.src);
+      showLogo(data);
+      try { localStorage.setItem(KEY, data); } catch (e) { alert('A imagem aparece agora, mas o navegador não deixou salvar para a próxima visita.'); }
+    };
+    img.src = URL.createObjectURL(file);
+    fileInput.value = '';
+  };
 </script>
 </body>
 </html>
